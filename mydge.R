@@ -1,7 +1,7 @@
 library(ggplot2)
 library(DESeq2)
 library(reshape)
-library(ggfortify)
+
 
 
 readCSVcountTable<-function(fname){
@@ -11,7 +11,7 @@ readCSVcountTable<-function(fname){
     return(ctable)
 }
 
-DESeqnormCs <- function(ctable){
+normalizeRLS <- function(ctable){
     dummycons<-data.frame(condition = gsub("_.+", "", names(ctable)), row.names=names(ctable))
     DESeq.dat<-DESeqDataSetFromMatrix( countData = ctable, colData = dummycons, design = ~ condition)
     DESeq.dat<- DESeq.dat[rowSums(counts(DESeq.dat)) > 0,]
@@ -19,15 +19,47 @@ DESeqnormCs <- function(ctable){
     return(DESeq.rlog)
     }
 
-RundDGE<-function(ctable, conditions, baseCondition){
+rundDESeq<-function(ctable, expdesign){
     DESeq.dat<-DESeqDataSetFromMatrix( countData = ctable, colData = conditions, design = ~ condition)
     colData(DESeq.dat)$condition <- relevel(colData(DESeq.dat)$condition, baseCondition)
     De<-DESeq(DESeq.dat)
-    R<-results(De, independentFiltering=TRUE, alpha=0.05)
+
+    
+    R<-results(De, independentFiltering=TRUE, alpha=0.05, contrast)
     return(R)
 }
 
 
+conditionsfromTable<-function(ctable,exp){
+    r<-data.frame(row.names=names(ctable),condition=gsub(exp,"",names(ctable)))
+    return(r)
+    
+}
+
+pairwiseConstrastlist <- function(conditionTable){
+    e<-unique(conditionTable$condition)
+    r<-data.frame(matrix(ncol=3,nrow=0))
+    for (i in e){
+        for (j in e){
+            if (i != j ){
+                v <- c("condition",i,j)
+                r <- rbind(r,v)
+                }
+            }
+        }
+    names(r)<-c("fact", "num", "denom")
+    return(r)
+    }
+
+subsetTreatment <- function(ctable, ...){
+    l <- list(...)
+    r<-data.frame(row.names=rownames(ctable))
+    for (p in l){
+        mc<-C[,grep(p, names(C))]
+        r<- cbind(r,mc)
+    }
+    return(r)
+}
 
 
 
