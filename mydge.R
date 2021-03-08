@@ -2,8 +2,6 @@ library(ggplot2)
 library(DESeq2)
 library(reshape)
 
-
-
 readCSVcountTable<-function(fname){
     ctable<-read.csv(fname, header=TRUE, sep=",")
     rownames(ctable)<-ctable[,1]
@@ -17,39 +15,45 @@ normalizeRLS <- function(ctable){
     DESeq.dat<- DESeq.dat[rowSums(counts(DESeq.dat)) > 0,]
     DESeq.rlog <- rlog(DESeq.dat, blind =TRUE)
     return(DESeq.rlog)
-    }
-
-rundDESeq<-function(ctable, expdesign){
-    DESeq.dat<-DESeqDataSetFromMatrix( countData = ctable, colData = conditions, design = ~ condition)
-    colData(DESeq.dat)$condition <- relevel(colData(DESeq.dat)$condition, baseCondition)
-    De<-DESeq(DESeq.dat)
-
-    
-    R<-results(De, independentFiltering=TRUE, alpha=0.05, contrast)
-    return(R)
 }
 
+runDESeq<-function(ctable, expdesign){
+    DESeq.dat <- DESeqDataSetFromMatrix( countData = ctable, colData = expdesign, design = ~ condition)
+    De <-DESeq(DESeq.dat)
+    pwcomps<- getpairwiseContrasts(expdesign)
+    for(i in 1:nrow(pwcomps)){
+        oname<- paste(pwcomps[i,2], "vs", pwcomps[i,3], sep= "")
+        dir.create(oname)
+        r<- results(De, independentFiltering =TRUE, alpha=0.05, contrast = c(pwcomps[i,1], pwcomps[i,2], pwcomps[i,3]))
+        print(summary(r))
+        write.csv(r,file=paste(oname,"/DESeq_", oname, "_results.csv", sep=""))
+        pdf(paste(oname, "/MAplot_", oname, ".pdf", sep =""))
+        plotMA (r, alpha = 0.05 , main = oname , ylim = c ( -10 ,10) )
+        dev.off()
+ 
+    }
+}
 
 conditionsfromTable<-function(ctable,exp){
     r<-data.frame(row.names=names(ctable),condition=gsub(exp,"",names(ctable)))
-    return(r)
-    
+    return(r)    
 }
 
-pairwiseConstrastlist <- function(conditionTable){
+getpairwiseContrasts <- function(conditionTable){
     e<-unique(conditionTable$condition)
     r<-data.frame(matrix(ncol=3,nrow=0))
+    f<-names(conditionTable)
     for (i in e){
         for (j in e){
             if (i != j ){
-                v <- c("condition",i,j)
+                v <- c(f,i,j)
                 r <- rbind(r,v)
                 }
             }
         }
     names(r)<-c("fact", "num", "denom")
     return(r)
-    }
+}
 
 subsetTreatment <- function(ctable, ...){
     l <- list(...)
