@@ -48,6 +48,25 @@ normalizeRLS <- function(ctable){
     return(DESeq.rlog)
 }
 
+
+runEdgeR<-function(ctable,contable,refgroup){
+    g <- relevel(factor(contable$condition), ref=refgroup)
+    s <- DGEList(counts=ctable, group= g)
+    f <- filterByExpr(s)
+    s <- s[f,]
+    s$samples$lib.size<-colSums(s$counts)
+    design <- model.matrix(~group, data=y$samples)
+    y <-estimateDisp(y,design)
+    fit <-glmQLFit(y,design)
+    for(i in 2:length(levels(g))){
+        oname <- paste("edgeR_", levels(g)[i], "vs", refgroup, sep="")
+        dir.create(oname)
+        glf<-glmQLFTest(fit, coef=i)
+        o <- topTags(glf, n= Inf, adjust.method = "BH")
+        write.csv(o,file=paste(oname, "/", oname, "result.csv", sep=""))
+    }
+}
+
 runDESeq<-function(ctable, expdesign){
     DESeq.dat <- DESeqDataSetFromMatrix( countData = ctable, colData = expdesign, design = ~ condition)
     De <-DESeq(DESeq.dat)
