@@ -53,7 +53,7 @@ runEdgeR<-function(ctable,contable,refgroup){
     g <- relevel(factor(contable$condition), ref=refgroup)
     s <- DGEList(counts=ctable, group= g)
     f <- filterByExpr(s)
-    s <- s[f,]
+    y <- s[f,]
     s$samples$lib.size<-colSums(s$counts)
     design <- model.matrix(~group, data=y$samples)
     y <-estimateDisp(s,design)
