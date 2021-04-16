@@ -56,7 +56,7 @@ runEdgeR<-function(ctable,contable,refgroup){
     s <- s[f,]
     s$samples$lib.size<-colSums(s$counts)
     design <- model.matrix(~group, data=y$samples)
-    y <-estimateDisp(y,design)
+    y <-estimateDisp(s,design)
     fit <-glmQLFit(y,design)
     for(i in 2:length(levels(g))){
         oname <- paste("edgeR_", levels(g)[i], "vs", refgroup, sep="")
